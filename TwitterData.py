@@ -11,9 +11,6 @@ import time
 from datetime import datetime, date, timedelta
 # Tweet pre-processor
 import preprocessor as p
-import pycountry
-import re
-import string
 from wordcloud import WordCloud, STOPWORDS
 from PIL import Image
 from langdetect import detect
@@ -46,6 +43,18 @@ def get_tweets(search_term=search_term, num_tweets=num_tweets):
             if (not tweet.retweeted) and ('RT @' not in tweet.full_text):
                 if tweet.lang == "en":
                     tweet_dict = {}
+
+                    nltk.download('vader_lexicon')
+                    sid = SentimentIntensityAnalyzer()
+                    score = sid.polarity_scores(tweet.full_text)
+                    comp = score['compound']
+                    if comp >= 0.05:
+                        tweet_dict['tar'] = 1
+                    elif (comp >-0.05) and (comp <0.05):
+                        tweet_dict['tar'] = 0
+                    elif comp <= -0.05:
+                        tweet_dict['tar'] = -1
+
                     tweet_dict['username'] = tweet.user.name
                     tweet_dict['location'] = tweet.user.location
                     tweet_dict['text'] = tweet.full_text
@@ -98,17 +107,29 @@ def dataClean(tweets_df):
 
     tweets_df = tweets_df.reset_index(drop=True)
 
+def writeData(tweets_df):
+    print("writting the data into local file.....ing")
+    # Create timestamp for datetime of extraction
+    extract_datetime = datetime.today().strftime('%Y%m%d_%H%M%S')
+
+    # Create csv filename
+    filename = 'data/covid_vaccine_tweets_extracted_' + extract_datetime + '.csv'
+
+    # Drop duplicates (if any)
+    tweets_df.drop_duplicates(inplace=True)
+
+    # Export dataframe as csv file with above filename
+    tweets_df.to_csv(filename, index=False)
+    print("writting the data into local file.....done")
+
 
 if __name__ == '__main__':
 
-    pd.set_option('display.max_columns', 20)  # 给最大列设置为10列
-    pd.set_option('display.max_rows', 100)  # 设置最大可见100行
-
-    # Authentication for Twitter API
-    consumerKey = "YdqYR73XZ6sbCXBZJ9GAoZjOI"
-    consumerSecret = "oLHLHD33Uqc6OGjyX4LMCoAS0dRURYLT1pz3VaLpI4XXo6JRxe"
-    accessToken = "1505907787859173381-4nzm4Xeq6bHQRRKmOY1vWl4pvKBdqN"
-    accessTokenSecret = "J5xHHgjZrbMJWMv52bb5zTJwTZoRu9aDQy5fOggYM377Y"
+    log = pd.read_csv("./config/login.csv")
+    consumerKey         = log['consumerKey'][0]
+    consumerSecret      = log['consumerSecret'][0]
+    accessToken         = log['accessToken'][0]
+    accessTokenSecret   = log['accessTokenSecret'][0]
 
     auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
     auth.set_access_token(accessToken, accessTokenSecret)
@@ -126,16 +147,7 @@ if __name__ == '__main__':
 
     dataClean(tweets_df)
 
-    print("writting the data into local file.....ing")
-    # Create timestamp for datetime of extraction
-    extract_datetime = datetime.today().strftime('%Y%m%d_%H%M%S')
+    writeData(tweets_df)
 
-    # Create csv filename
-    filename = 'data/covid_vaccine_tweets_extracted_' + extract_datetime + '.csv'
 
-    # Drop duplicates (if any)
-    tweets_df.drop_duplicates(inplace=True)
 
-    # Export dataframe as csv file with above filename
-    tweets_df.to_csv(filename, index=False)
-    print("writting the data into local file.....done")
