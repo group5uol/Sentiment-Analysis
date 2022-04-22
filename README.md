@@ -18,3 +18,4 @@
    2. search term
 2. interactive with front-end side, return the pictures back
 3. plot the more graphs to compare the different results
+4. the file 'glove.840B.300d.pkl' is too big, so if you want run this project in your local env what you need to do is downloading this file from Web and replace the same file at the path of data dictionary.
